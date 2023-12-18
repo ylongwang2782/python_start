@@ -46,7 +46,7 @@ class ImpedanceFrame:
         # 解析 ImpedanceDataFrame 中的 data_byte
         data_byte_offset = device_status_offset + 2
         data_byte_length = data_byte_length = int.from_bytes(byte_data[3], byteorder='big') - 8 - 3
-  # 假设第一个字节表示 data_byte 的长度
+        # 假设第一个字节表示 data_byte 的长度
         self.data.data_byte = byte_data[data_byte_offset:data_byte_offset + data_byte_length]
 
         # 解析 checknum
@@ -103,6 +103,7 @@ class SerialDebugAssistant:
         self.g_u8ReceiveByteHeaderPosition = 0
         self.g_u8ReceiveBytePosition = 0
         self.g_u8DataReceiveBuffer = []
+        self.binary_data = []
 
         
 
@@ -148,7 +149,6 @@ class SerialDebugAssistant:
             self.text_area.config(state="disabled")
 
     def read_from_serial(self):
-        
         with open('output.txt', 'a') as file:
             while self.running:  # 使用标志来控制线程运行状态
                 try:
@@ -174,13 +174,17 @@ class SerialDebugAssistant:
                             if len(self.g_u8DataReceiveBuffer) >= 4:
                                 if self.g_u8ReceiveBytePosition == int.from_bytes(self.g_u8DataReceiveBuffer[3], byteorder='big'):
                                     # 在这里添加类型区分的逻辑
-                                    # ...
                                     if 2 == int.from_bytes(self.g_u8DataReceiveBuffer[6], byteorder='big'):
+                                        # 定义表格的行数和列数
+                                        num_rows = 24
+                                        num_cols = impedance_frame.data.line_volume
                                         impedance_frame = ImpedanceFrame()
                                         impedance_frame.parse_from_bytes(self.g_u8DataReceiveBuffer)
-                                        print("impedance_frame.data.line_volume")
-                                        file.write(f"this is LineData")
-                                        file.flush()
+                                        # 将十六进制数值拼接为字符串
+                                        hex_value = ''.join(format(byte, '02X') for byte in impedance_frame.data.data_byte)
+                                        # 十六进制字符串转二进制字符串
+                                        binary_value = bin(int(hex_value, 16))[2:].zfill(4 * impedance_frame.data.line_volume)
+                                        table = [[int(binary_value[i * num_cols + j]) for j in range(num_cols)] for i in range(num_rows)]
                                     # 重置指针
                                     self.g_u8ReceiveByteHeaderPosition = 0
                                     self.g_u8ReceiveBytePosition = 0
