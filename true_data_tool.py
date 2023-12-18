@@ -105,29 +105,32 @@ class SerialDebugAssistant:
                         data = self.ser.read(1)
                         self.g_u8DataReceiveBuffer.append(data)
                         if self.g_u8ReceiveByteHeaderPosition < 3:
-                            if data == self.g_u8FrameHeader[self.g_u8ReceiveByteHeaderPosition]:
+                            expected_byte = self.g_u8FrameHeader[self.g_u8ReceiveByteHeaderPosition]
+                            if data[0] == expected_byte:
                                 self.g_u8ReceiveByteHeaderPosition += 1
                                 self.g_u8ReceiveBytePosition += 1
                             else:
                                 # 帧头校验失败并复位帧头校验指针
                                 self.g_u8ReceiveByteHeaderPosition = 0
                                 self.g_u8ReceiveBytePosition = 0
+                                self.g_u8DataReceiveBuffer.clear()
                         else:
                             # HEADER MATCHES
                             # 帧头校验成功
                             self.g_u8ReceiveBytePosition += 1
 
                             # 如果所有数据都已接收，重置指针，然后进入类型区分
-                            if self.g_u8ReceiveBytePosition == self.g_u8DataReceiveBuffer[3]:
-                                # 在这里添加类型区分的逻辑
-                                # ...
-                                if self.g_u8DataReceiveBuffer[6] == 0x02:
-                                    print("this is LineData")
-                                file.write(f"this is LineData")
-                                file.flush()
-                                # 重置指针
-                                self.g_u8ReceiveByteHeaderPosition = 0
-                                self.g_u8ReceiveBytePosition = 0
+                            if len(self.g_u8DataReceiveBuffer) >= 4:
+                                if self.g_u8ReceiveBytePosition == int.from_bytes(self.g_u8DataReceiveBuffer[3], byteorder='big'):
+                                    # 在这里添加类型区分的逻辑
+                                    # ...
+                                    if self.g_u8DataReceiveBuffer[6] == 0x02:
+                                        print("this is LineData")
+                                    file.write(f"this is LineData")
+                                    file.flush()
+                                    # 重置指针
+                                    self.g_u8ReceiveByteHeaderPosition = 0
+                                    self.g_u8ReceiveBytePosition = 0
 
                 except serial.SerialException as e:
                     self.text_area.config(state="normal")
