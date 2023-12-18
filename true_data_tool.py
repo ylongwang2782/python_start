@@ -124,10 +124,10 @@ class SerialDebugAssistant:
                                 if self.g_u8ReceiveBytePosition == int.from_bytes(self.g_u8DataReceiveBuffer[3], byteorder='big'):
                                     # 在这里添加类型区分的逻辑
                                     # ...
-                                    if self.g_u8DataReceiveBuffer[6] == 0x02:
+                                    if 2 == int.from_bytes(self.g_u8DataReceiveBuffer[6], byteorder='big'):
                                         print("this is LineData")
-                                    file.write(f"this is LineData")
-                                    file.flush()
+                                        file.write(f"this is LineData")
+                                        file.flush()
                                     # 重置指针
                                     self.g_u8ReceiveByteHeaderPosition = 0
                                     self.g_u8ReceiveBytePosition = 0
