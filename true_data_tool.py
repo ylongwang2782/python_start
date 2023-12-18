@@ -9,26 +9,49 @@ class DeviceStatus:
     def __init__(self):
         self.status_color = 0  # 颜色传感器匹配状态
         self.status_probe1 = 0  # 通断状态1
-        self.status_probe2 = 0  # 通断状态2
-        self.status_battery_low = 0  # 电池低电量
-        self.status_press = 0  # 气密性线状态
-        self.value_press = 0  # 气压数值
 
-class LineDataFrame:
+class ImpedanceDataFrame:
     def __init__(self):
         self.line_volume = 0  # 初始化为整数
         self.device_status = DeviceStatus()  # 初始化为DeviceStatus类的实例
-        self.data_byte = [0] * 256  # 初始化为包含256个元素的整数列表
+        self.data_byte = []
 
-class DataFrameHead:
+class ImpedanceFrame:
     def __init__(self):
         self.head = [0, 0, 0]  # 初始化为整数列表
         self.length = 0  # 初始化为整数
         self.seq_num = 0  # 初始化为整数
         self.slot_number = 0  # 初始化为整数
         self.type = 0  # 初始化为整数
-        self.data = LineDataFrame()
+        self.data = ImpedanceDataFrame()
         self.checknum = 0
+
+    def parse_from_bytes(self, byte_data):
+        # 根据实际数据格式和偏移解析字节数组
+        self.head = list(byte_data[:3])
+        self.length = byte_data[3]
+        self.seq_num = byte_data[4]
+        self.slot_number = byte_data[5]
+        self.type = byte_data[6]
+
+        # 解析 ImpedanceDataFrame 中的数据
+        data_frame_offset = 7
+        self.data.line_volume = byte_data[data_frame_offset]
+        
+        # 解析 DeviceStatus 中的数据
+        device_status_offset = data_frame_offset + 1
+        self.data.device_status.status_color = byte_data[device_status_offset]
+        self.data.device_status.status_probe1 = byte_data[device_status_offset + 1]
+        
+        # 解析 ImpedanceDataFrame 中的 data_byte
+        data_byte_offset = device_status_offset + 2
+        data_byte_length = data_byte_length = int.from_bytes(byte_data[3], byteorder='big') - 8 - 3
+  # 假设第一个字节表示 data_byte 的长度
+        self.data.data_byte = byte_data[data_byte_offset:data_byte_offset + data_byte_length]
+
+        # 解析 checknum
+        checknum_offset = data_byte_offset + data_byte_length
+        self.checknum = byte_data[checknum_offset]
 
 class SerialDebugAssistant:
     def __init__(self, root):
@@ -81,6 +104,8 @@ class SerialDebugAssistant:
         self.g_u8ReceiveBytePosition = 0
         self.g_u8DataReceiveBuffer = []
 
+        
+
 
     def disconnect_serial(self):
         # 停止读取线程
@@ -123,6 +148,7 @@ class SerialDebugAssistant:
             self.text_area.config(state="disabled")
 
     def read_from_serial(self):
+        
         with open('output.txt', 'a') as file:
             while self.running:  # 使用标志来控制线程运行状态
                 try:
@@ -150,12 +176,15 @@ class SerialDebugAssistant:
                                     # 在这里添加类型区分的逻辑
                                     # ...
                                     if 2 == int.from_bytes(self.g_u8DataReceiveBuffer[6], byteorder='big'):
-                                        print("this is LineData")
+                                        impedance_frame = ImpedanceFrame()
+                                        impedance_frame.parse_from_bytes(self.g_u8DataReceiveBuffer)
+                                        print("impedance_frame.data.line_volume")
                                         file.write(f"this is LineData")
                                         file.flush()
                                     # 重置指针
                                     self.g_u8ReceiveByteHeaderPosition = 0
                                     self.g_u8ReceiveBytePosition = 0
+                                    self.g_u8DataReceiveBuffer.clear()
 
                 except serial.SerialException as e:
                     self.text_area.config(state="normal")
