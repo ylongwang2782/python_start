@@ -5,6 +5,31 @@ import serial
 import serial.tools.list_ports
 import threading
 
+class DeviceStatus:
+    def __init__(self):
+        self.status_color = 0  # 颜色传感器匹配状态
+        self.status_probe1 = 0  # 通断状态1
+        self.status_probe2 = 0  # 通断状态2
+        self.status_battery_low = 0  # 电池低电量
+        self.status_press = 0  # 气密性线状态
+        self.value_press = 0  # 气压数值
+
+class LineDataFrame:
+    def __init__(self):
+        self.line_volume = 0  # 初始化为整数
+        self.device_status = DeviceStatus()  # 初始化为DeviceStatus类的实例
+        self.data_byte = [0] * 256  # 初始化为包含256个元素的整数列表
+
+class DataFrameHead:
+    def __init__(self):
+        self.head = [0, 0, 0]  # 初始化为整数列表
+        self.length = 0  # 初始化为整数
+        self.seq_num = 0  # 初始化为整数
+        self.slot_number = 0  # 初始化为整数
+        self.type = 0  # 初始化为整数
+        self.data = LineDataFrame()
+        self.checknum = 0
+
 class SerialDebugAssistant:
     def __init__(self, root):
         self.root = root
